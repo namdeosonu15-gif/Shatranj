@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Raja Chess</title>
+
+<style>
+*{
+  box-sizing:border-box;
+}
+
+body{
+  margin:0;
+  background:#111;
+  color:white;
+  font-family:Arial,sans-serif;
+  text-align:center;
+}
+
+h1{
+  margin:15px 0 5px;
+}
+
+#status{
+  font-size:18px;
+  margin:10px;
+}
+
+#board{
+  width:94vw;
+  max-width:520px;
+  height:94vw;
+  max-height:520px;
+  margin:15px auto;
+  display:grid;
+  grid-template-columns:repeat(8,1fr);
+  border:4px solid #333;
+}
+
+.square{
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  font-size:clamp(30px,9vw,60px);
+  cursor:pointer;
+  user-select:none;
+}
+
+.light{
+  background:#f0d9b5;
+}
+
+.dark{
+  background:#b58863;
+}
+
+.selected{
+  box-shadow:inset 0 0 0 5px yellow;
+}
+
+button{
+  padding:12px 25px;
+  border:0;
+  border-radius:10px;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>♟️ Raja Chess ♟️</h1>
+<div id="status">आपकी चाल — सफेद मोहरे</div>
+
+<div id="board"></div>
+
+<button onclick="newGame()">🔄 नया गेम</button>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
+
+<script>
+
+let game = new Chess();
+let selected = null;
+
+const pieces = {
+  w:{
+    k:"♔",
+    q:"♕",
+    r:"♖",
+    b:"♗",
+    n:"♘",
+    p:"♙"
+  },
+  b:{
+    k:"♚",
+    q:"♛",
+    r:"♜",
+    b:"♝",
+    n:"♞",
+    p:"♟"
+  }
+};
+
+function drawBoard(){
+
+  const board = document.getElementById("board");
+  board.innerHTML="";
+
+  const position = game.board();
+
+  for(let r=0;r<8;r++){
+
+    for(let c=0;c<8;c++){
+
+      const square = document.createElement("div");
+
+      square.className =
+        "square " +
+        ((r+c)%2===0 ? "light":"dark");
+
+      const file = String.fromCharCode(97+c);
+      const rank = 8-r;
+      const name = file+rank;
+
+      square.dataset.square=name;
+
+      const piece = position[r][c];
+
+      if(piece){
+        square.textContent=pieces[piece.color][piece.type];
+      }
+
+      if(selected===name){
+        square.classList.add("selected");
+      }
+
+      square.onclick=()=>playerMove(name);
+
+      board.appendChild(square);
+    }
+  }
+}
+
+function playerMove(square){
+
+  if(game.game_over()){
+    return;
+  }
+
+  if(game.turn()!=="w"){
+    return;
+  }
+
+  if(selected===null){
+
+    const piece = game.get(square);
+
+    if(piece && piece.color==="w"){
+      selected=square;
+      drawBoard();
+    }
+
+    return;
+  }
+
+  if(selected===square){
+
+    selected=null;
+    drawBoard();
+    return;
+  }
+
+  const move = game.move({
+    from:selected,
+    to:square,
+    promotion:"q"
+  });
+
+  if(move){
+
+    selected=null;
+    drawBoard();
+    updateStatus();
+
+    if(!game.game_over()){
+      setTimeout(computerMove,500);
+    }
+
+  }else{
+
+    const piece = game.get(square);
+
+    if(piece && piece.color==="w"){
+      selected=square;
+      drawBoard();
+    }
+  }
+}
+
+function computerMove(){
+
+  if(game.game_over()) return;
+
+  if(game.turn()!=="b") return;
+
+  const moves=game.moves();
+
+  if(moves.length===0){
+    updateStatus();
+    return;
+  }
+
+  // कंप्यूटर कानूनी चालों में से एक चाल चुनेगा
+  const move=moves[Math.floor(Math.random()*moves.length)];
+
+  game.move(move);
+
+  drawBoard();
+  updateStatus();
+}
+
+function updateStatus(){
+
+  const status=document.getElementById("status");
+
+  if(game.in_checkmate()){
+
+    if(game.turn()==="w"){
+      status.textContent="♟️ कंप्यूटर जीत गया!";
+    }else{
+      status.textContent="🎉 आप जीत गए!";
+    }
+
+    return;
+  }
+
+  if(game.in_draw()){
+    status.textContent="🤝 गेम ड्रॉ हो गया!";
+    return;
+  }
+
+  if(game.in_check()){
+
+    if(game.turn()==="w"){
+      status.textContent="⚠️ शह! आपकी चाल";
+    }else{
+      status.textContent="⚠️ कंप्यूटर को शह!";
+    }
+
+    return;
+  }
+
+  if(game.turn()==="w"){
+    status.textContent="आपकी चाल — सफेद मोहरे";
+  }else{
+    status.textContent="🤖 कंप्यूटर सोच रहा है...";
+  }
+}
+
+function newGame(){
+
+  game=new Chess();
+  selected=null;
+
+  drawBoard();
+  updateStatus();
+}
+
+drawBoard();
+
+</script>
+
+</body>
+</html>
